@@ -27,6 +27,13 @@ class VITMINI:
         # deviceControl.stopStream()
         self.streaming_device = Streaming(self.ip, self.streaming_port)
 
+
+    def get_sn(self):
+        name, version = self.deviceControl.getIdent()
+        sn=self.deviceControl.getSerialNumber()
+        return (name.decode('utf-8'))+(version.decode('utf-8'))+(sn.decode('utf-8'))
+
+
     def load_ssr(self, path):
         images_distance, images_intensity, images_confidence, cam_params, is_stereo = ssrloader.readSsrData(path, 0, 0)
         numRows = cam_params.height
@@ -167,4 +174,4 @@ class VITMINI:
         box_list[:,1] = m_c2w[7] +zc *m_c2w[6] +yc *m_c2w[5] +xc *m_c2w[4]
         box_list[:,2] = m_c2w[11] +zc*m_c2w[10] +yc *m_c2w[9] +xc *m_c2w[8]
 
-        return box_list
+        return np.column_stack((box_list, d))

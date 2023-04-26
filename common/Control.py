@@ -631,6 +631,13 @@ class Control:
         deviceVersion, offset = self.unpack_flexstring_from(rx, offset)
         return (deviceName, deviceVersion)
 
+    def getSerialNumber(self):
+        """ Returns the device Name and Version identifier """
+        rx = self.readVariable(b'SerialNumber')
+        offset = 0
+        data, offset = self.unpack_flexstring_from(rx, offset)
+        return data
+
     def getCurrentJobId(self):
         currentJobId = self.readVariable(b"mjCurrentJobId")
         return struct.unpack('>H', currentJobId)[0]

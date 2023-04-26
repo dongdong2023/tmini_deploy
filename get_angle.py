@@ -116,16 +116,11 @@ def open3d_segment(points):
     return np.array([X_angel, Y_angel, Z_angel, 90 - X_angel]), inliers
 
 
-def fit(points):
+def fit(points,distance_threshold = 10,ransac_n = 3,num_iterations = 100,probability = 0.99):
     # 生成点云数据
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(points)
-
     # 使用RANSAC算法拟合平面
-    distance_threshold = 10
-    ransac_n = 3
-    num_iterations = 100
-    probability = 0.99
     plane_model, inliers = pcd.segment_plane(distance_threshold, ransac_n, num_iterations, probability)
 
     # 获取平面法向量和单位向量

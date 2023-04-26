@@ -12,3 +12,13 @@ Server:
   ip: 127.0.0.1
   post: 2000
   output: one  # all
+
+hyp:
+  ratio: 5   #缩放比例
+  distance_threshold: 10
+  ransac_n: 3
+  num_iterations: 100
+  probability: 0.99
+
+lience: 1340bd419786351f573692a9e15a4bdd
+

@@ -1,6 +1,6 @@
 # encoding=utf-8
 import time
-
+import hashlib
 from qtgui import Window
 import sys
 from PyQt5 import QtCore
@@ -71,6 +71,8 @@ class MainWindow(Window):
     # 自定义消息
     dialogSignel1 = pyqtSignal(str)  # textbrowser
     dialogSignel2 = pyqtSignal(str)  # textbrowser_2
+    #  初始化标志
+    init_label=False
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -82,6 +84,7 @@ class MainWindow(Window):
         self.dialogSignel2.connect(self.updata_textbrowser2)
         self.read()
         self.pushButton_2.click()
+
 
     def read(self):  # 读取
         cfg = read_cof()
@@ -122,6 +125,21 @@ class MainWindow(Window):
         except Exception as e:
             self.dialogSignel1.emit(str(e))
             QMessageBox.critical(self, '错误', '相机问题')
+            return
+
+        # 检测SN号
+        try:
+            cfg = read_cof()
+            lience = cfg['lience']
+            data=self.vit.get_sn()
+            hash_object = hashlib.md5(data.encode())
+            if hash_object.hexdigest()!=lience:
+                QMessageBox.critical(self, '错误', 'lience')
+                return
+        except Exception as e:
+            self.dialogSignel1.emit(str(e))
+            QMessageBox.critical(self, '错误', 'lience')
+            return
         # 模型初始化
         try:
             self.models = Model()
@@ -129,14 +147,18 @@ class MainWindow(Window):
         except Exception as e:
             self.dialogSignel1.emit(str(e))
             QMessageBox.critical(self, '错误', '模型问题')
+            return
         # 通讯初始化
         try:
             self.tcp_server_start(result[3][1], result[3][2])
         except Exception as e:
             self.dialogSignel1.emit(str(e))
             QMessageBox.critical(self, '错误', '模型问题')
+            return
 
         self.dialogSignel1.emit('初始化完成')
+
+        self.init_label=True
 
     def file_path(self):
         fname = QFileDialog.getOpenFileName(self, '打开文件', )
@@ -223,11 +245,13 @@ class MainWindow(Window):
             self.client_socket_list.remove((client, address))
 
     def get_data(self):
+
         try:
             trige_select = self.trige_select.checkedButton().text()
         except:
             QMessageBox.warning(self, '警告', '相机设置必须选一个', QMessageBox.Yes | QMessageBox.No)
             return
+
         camera_ip = self.lineEdit_11.text()
         data_distance = self.checkBox.isChecked()
         saveimg = self.checkBox_3.isChecked()
@@ -266,6 +290,9 @@ class MainWindow(Window):
 
     def start_det(self):
         # [trigger_mode,data_mode,saveimg,savepcl,roi_x,roi_y,roi_w,roi_h,roi_d,image_x,image_y,conf_threshold,nms_iou_threshold]
+        if not self.init_label:
+            QMessageBox.critical(self, '错误', 'lience')
+            return
         result = self.get_data()
         if result is None:
             return
@@ -378,6 +405,7 @@ class MainWindow(Window):
 
                 # 数据展示
                 if len(process_result)!=0:
+                    process_result = np.delete(process_result, 3, axis=1)
                     import csv
                     fo = open("info.csv", "a", newline='')
                     writer = csv.writer(fo)
@@ -423,7 +451,6 @@ class MainWindow(Window):
         # 取3个点求平面的法向量和角度
         # 取两个box的两个边的中心点
         try:
-
             boxes = np.array(result_box.boxes)
             boxes /= r
             scores = result_box.scores
@@ -497,7 +524,9 @@ class MainWindow(Window):
                     #     point2.append([point2_cx + 15,point2_cy,distanceData[int(point2_cy), int(point2_cx + 15)]])
                     all_point=[]
                     all_point.append([center_x, center_y, center_z])
-                    h=(data[0][3]-data[0][1])/5
+                    cfg = read_cof()
+                    ratio = cfg['hyp']['ratio']
+                    h=(data[0][3]-data[0][1])/int(ratio)
                     for i in range(int(data[0][0]+2), int(data[0][2]-2)):
                         for j in range(int(data[0][1]+h), int(data[0][3]-h)):
                             point1_cz = distanceData[int(j), int(i)]
@@ -521,7 +550,12 @@ class MainWindow(Window):
                     # todo  角度计算
                     # angle = point_angle(cam_points)
                     # angle=fit_face(cam_points)
-                    angle, inliers = fit(cam_points)
+                    cfg = read_cof()
+                    distance_threshold = cfg['hyp']['distance_threshold']
+                    ransac_n = cfg['hyp']['ransac_n']
+                    num_iterations = cfg['hyp']['num_iterations']
+                    probability = cfg['hyp']['probability']
+                    angle, inliers = fit(cam_points[:,:3],distance_threshold,ransac_n,num_iterations,probability)
                     # angle,inliers=open3d_segment(cam_points)
                     result.append(np.hstack((cam_points[0], angle)))
                     # 画3个点
@@ -531,8 +565,8 @@ class MainWindow(Window):
             # 保留两位小数
             if len(result)!=0:
                 result = np.around(result, decimals=2)
-                # 按照高度排序
-                index = np.lexsort([result[:, 2]])
+                # 按照d排序
+                index = np.lexsort([result[:, 3]])
                 result = result[index, :]
                 return np.array(result), vis_im
             else:

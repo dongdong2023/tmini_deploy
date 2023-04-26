@@ -26,7 +26,7 @@ class Model:
         # option.use_openvino_backend() # OpenVINO
         # option.use_ort_backend() # ONNX Runtime
         if path=='':
-            self.model = fd.vision.detection.YOLOv7('yolov7.onnx', runtime_option=option)
+            self.model = fd.vision.detection.YOLOv7('weights/yolov7.onnx', runtime_option=option)
         else:
             self.model = fd.vision.detection.YOLOv7(path, runtime_option=option)
 
