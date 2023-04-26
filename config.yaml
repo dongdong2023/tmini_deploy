@@ -1,0 +1,14 @@
+Camera:
+  ip: 192.168.0.12
+  password: CUST_SERV
+  post: 2114
+  saveply: true
+  shit: -1000
+  type: trigger   #connect
+Model:
+  model_path: G:/customer/hailuo1/new_1_mask_rcnn_version_0052.h5
+  disk: cpu     #gpu
+Server:
+  ip: 127.0.0.1
+  post: 2000
+  output: one  # all
